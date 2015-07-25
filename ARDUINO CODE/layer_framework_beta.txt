@@ -1,0 +1,101 @@
+//LAYER BASED TABLE GRAFICS FRAMEWORK by Marcel Ochsendorf (C) 04.2014
+
+#include <FastSPI_LED.h>
+#define NUM_LEDS 200
+struct CRGB { unsigned char b; unsigned char r; unsigned char g; };
+struct CRGB *leds;
+#define PIN 4
+
+//USERVARS
+const int feldx = 20;
+const int feldy = 10;
+const int renderfeldx = 20;
+const int renderfeldy = 10;
+int current_effect = 0;
+
+int layer1[feldx][feldy][3];
+int layer2[feldx][feldy][3];
+int layer3[feldx][feldy][3];
+int layerrender[feldx][feldy][3];
+//int layertouch[feldx][feldy]; //hier werden die daten der sensoren hineingelsen
+int max_sw_value = 0; 
+
+
+
+void mergelayer(){
+for (int i = 0; i < renderfeldx; i++){
+for (int j = 0; j < renderfeldy; j++){
+                        layerrender[i][j][0] = layer1[i][j][0];layerrender[i][j][1] = layer1[i][j][1];layerrender[i][j][2] = layer1[i][j][2];
+			if(layer2[i][j][0] > 0 || layer2[i][j][1] > 0 || layer2[i][j][2] > 0 ){layerrender[i][j][0] = layer2[i][j][0];layerrender[i][j][1] = layer2[i][j][1];layerrender[i][j][2] = layer2[i][j][2];}
+                        if(layer3[i][j][0] > 0 || layer3[i][j][1] > 0 || layer3[i][j][2] > 0 ){layerrender[i][j][0] = layer3[i][j][0];layerrender[i][j][1] = layer3[i][j][1];layerrender[i][j][2] = layer3[i][j][2];}
+}
+}
+}
+
+void apply_effect(int type = 0){
+
+
+if(type == 2){
+  //GRAUSTUFEN
+  max_sw_value = 0;
+  for (int i = 0; i < renderfeldx; i++){for (int j = 0; j < renderfeldy; j++){
+  if(layerrender[i][j][0] < layerrender[i][j][1]){max_sw_value =layerrender[i][j][1];}else{max_sw_value =layerrender[i][j][0];}
+  if(layerrender[i][j][0] < layerrender[i][j][2]){max_sw_value =layerrender[i][j][2];}else{max_sw_value =layerrender[i][j][0];}
+  if(layerrender[i][j][1] < layerrender[i][j][2]){max_sw_value =layerrender[i][j][2];}else{max_sw_value =layerrender[i][j][1];}
+  layerrender[i][j][0] = max_sw_value;
+  layerrender[i][j][1] = max_sw_value;
+  layerrender[i][j][2] = max_sw_value;
+  }}
+
+}else if(type == 1){
+  //NEGATIV EFFECT
+for (int i = 0; i < renderfeldx; i++){for (int j = 0; j < renderfeldy; j++){layerrender[i][j][0] = 255- layerrender[i][j][0];layerrender[i][j][1] = 255- layerrender[i][j][1];layerrender[i][j][2] = 255- layerrender[i][j][2];}}
+
+}else{}//END TYPE
+
+}
+
+void render(){
+mergelayer();
+apply_effect(current_effect);
+//hier in deie led matrix übernehmen
+for (int i = 0; i < renderfeldx; i++){
+for (int j = 0; j < renderfeldy; j++){
+leds[get_led_number(i,j)].r = layerrender[i][j][0];
+leds[get_led_number(i,j)].g =layerrender[i][j][1];
+leds[get_led_number(i,j)].b =layerrender[i][j][2];
+}}FastSPI_LED.show();
+}
+
+ 
+
+
+
+
+
+
+void setup(){
+randomSeed(analogRead(0));
+  FastSPI_LED.setLeds(NUM_LEDS);
+  FastSPI_LED.setChipset(CFastSPI_LED::SPI_TM1809);
+  FastSPI_LED.setPin(PIN);
+  FastSPI_LED.setDataRate(1);
+  FastSPI_LED.init();
+  FastSPI_LED.start();
+  leds = (struct CRGB*)FastSPI_LED.getRGBData(); 
+}
+
+
+void loop(){
+
+
+render();
+
+}
+
+unsigned int get_led_number(int x, int y){
+if (y % 2) {
+return (y*feldx)+feldx-1-x; //ungerade
+}else{
+return (y*feldx)+x; //y=1; //GERADE
+}}

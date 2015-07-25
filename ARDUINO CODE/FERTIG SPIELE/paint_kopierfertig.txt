@@ -1,0 +1,288 @@
+#include "Adafruit_NeoPixel.h"
+#define NUM_LEDS 200
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(200, 33, NEO_RGB + NEO_KHZ800);
+
+const int relais = 35;
+const int fan = 37;
+
+int nullpunkt = 1; //0: oben links, 1: oben rechts, 2: unten links, 3: unten rechts
+
+const unsigned int feldx = 20;
+const unsigned int feldy = 10;
+int mode = 13;
+
+int p1_latch = A1; // set the latch pin
+int p1_clock = A0; // set the clock pin
+int p1_datin = A2;// set the data in pin
+int p2_latch = A4;// set the latch pin
+int p2_clock = A3; // set the clock pin
+int p2_datin = A5;// set the data in pin
+byte p1_controller_data = 0;
+byte p2_controller_data = 0;
+
+
+
+void clear_screen() {
+  uint16_t i;
+  for (i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(0, 0, 0));
+  }
+  strip.show();
+}
+
+
+
+int paint_wheel_pos = 0;
+int paint_pointer[2] = {feldx/2,feldy/2};
+int paint_ponter_color[3] = {255,255,255};
+int paint_grid[feldx][feldy][3];
+
+int paint_spiegeln = 1;
+int color_display_mode = 0;
+int paint_background[3] = {0,0,0};
+
+
+
+
+
+
+
+
+
+
+
+void setup() {
+  randomSeed(analogRead(6));
+  strip.begin();
+//LEDS UND FAN SCHALTEN
+pinMode(relais,OUTPUT); 
+  pinMode(fan,OUTPUT); 
+ digitalWrite(relais,HIGH);
+ digitalWrite(fan,HIGH);
+  //CONTROLLER INIT
+  pinMode(p1_latch, OUTPUT);
+  pinMode(p1_clock, OUTPUT);
+  pinMode(p1_datin, INPUT);
+  digitalWrite(p1_latch, HIGH);
+  digitalWrite(p1_clock, HIGH);
+  pinMode(p2_latch, OUTPUT);
+  pinMode(p2_clock, OUTPUT);
+  pinMode(p2_datin, INPUT);
+  digitalWrite(p2_latch, HIGH);
+  digitalWrite(p2_clock, HIGH);
+  
+  clear_screen();
+  paint_main_reset();
+}
+
+
+
+
+
+void paint_main_reset() {
+  paint_new_page();
+}
+
+
+
+void loop() {
+
+paint_loop();
+
+}
+
+
+
+void paint_loop() {
+paint_wheel(paint_wheel_pos);
+paint_draw_grid();
+controllerRead();
+delay (100);
+}
+
+
+
+
+
+void paint_new_page() {
+        for (int i = 0; i < feldx; i++){for (int j = 0; j < feldy; j++){       
+paint_grid[i][j][0] = paint_background[0];
+paint_grid[i][j][1] = paint_background[1];
+paint_grid[i][j][2] = paint_background[2];     
+        }}
+	paint_draw_grid();
+}
+
+
+void paint_draw_grid() {
+        for (int i = 0; i < feldx; i++){
+        for (int j = 0; j < feldy; j++){       
+strip.setPixelColor( get_led_number(i,j),  strip.Color(paint_grid[i][j][0], paint_grid[i][j][1] , paint_grid[i][j][2]));    
+        }}
+ paint_draw_pointer(); 
+strip.show();
+
+}
+
+void paint_draw_pointer(){
+  if(color_display_mode == 0){
+  strip.setPixelColor( get_led_number(paint_pointer[0],paint_pointer[1]),  strip.Color(255-paint_grid[paint_pointer[0]][paint_pointer[1]][0], 255-paint_grid[paint_pointer[0]][paint_pointer[1]][1] ,255-paint_grid[paint_pointer[0]][paint_pointer[1]][2]));
+  strip.setPixelColor( get_led_number(0,0),  strip.Color(paint_ponter_color[0],paint_ponter_color[1],paint_ponter_color[2]));
+ strip.setPixelColor( get_led_number(feldx-1,feldy-1),  strip.Color(paint_ponter_color[0],paint_ponter_color[1],paint_ponter_color[2]));
+ strip.setPixelColor( get_led_number(0,feldy-1),  strip.Color(paint_ponter_color[0],paint_ponter_color[1],paint_ponter_color[2]));
+ strip.setPixelColor( get_led_number(feldx-1,0),  strip.Color(paint_ponter_color[0],paint_ponter_color[1],paint_ponter_color[2]));
+  }else if(color_display_mode == 1){
+ strip.setPixelColor( get_led_number(paint_pointer[0],paint_pointer[1]),  strip.Color(paint_ponter_color[0],paint_ponter_color[1],paint_ponter_color[2]));
+  }
+}
+
+
+void paint_set_pixel_color(){
+paint_grid[paint_pointer[0]][paint_pointer[1]][0] = paint_ponter_color[0];
+paint_grid[paint_pointer[0]][paint_pointer[1]][1] = paint_ponter_color[1];
+paint_grid[paint_pointer[0]][paint_pointer[1]][2] = paint_ponter_color[2];
+}
+
+
+void paint_remove_pixel_color(){
+paint_grid[paint_pointer[0]][paint_pointer[1]][0] = paint_background[0];
+paint_grid[paint_pointer[0]][paint_pointer[1]][1] = paint_background[1];
+paint_grid[paint_pointer[0]][paint_pointer[1]][2] = paint_background[2];
+}
+
+
+
+void paint_mv_up() {
+if (paint_pointer[1] < feldy-1) {
+paint_pointer[1]++;
+delay(20);
+}
+}
+
+void paint_mv_down() {
+if (paint_pointer[1] > 0) {
+paint_pointer[1]--;
+delay(20);
+}
+}
+
+void paint_mv_left() {
+if (paint_pointer[0] < feldx-1) {
+paint_pointer[0]++;
+delay(20);
+}
+}
+
+void paint_mv_right() {
+if (paint_pointer[0] > 0) {
+paint_pointer[0]--;
+delay(20);
+}
+}
+
+void paint_wheel(byte WheelPos) {
+  if (WheelPos < 85) {  
+    paint_ponter_color[0] = WheelPos * 3;
+    paint_ponter_color[1] =255 - WheelPos * 3;
+    paint_ponter_color[2] = 0;
+  } else if (WheelPos < 170) {
+    WheelPos -= 85;
+ paint_ponter_color[3] = WheelPos * 3;
+ paint_ponter_color[1] =255 - WheelPos * 3;
+ paint_ponter_color[2] = 0;
+  } else {
+    WheelPos -= 170;
+ paint_ponter_color[2] = WheelPos * 3;
+ paint_ponter_color[1] =255 - WheelPos * 3;
+ paint_ponter_color[0] = 0;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void controllerRead() {
+p1_controller_data = 0;
+digitalWrite(p1_latch,LOW);digitalWrite(p1_clock,LOW);digitalWrite(p1_latch,HIGH);
+delayMicroseconds(2);
+digitalWrite(p1_latch,LOW);
+p1_controller_data = digitalRead(p1_datin);
+for (int i = 1; i <= 7; i ++) {
+digitalWrite(p1_clock,HIGH);
+delayMicroseconds(2);
+p1_controller_data = p1_controller_data << 1;
+p1_controller_data = p1_controller_data + digitalRead(p1_datin) ;
+delayMicroseconds(4);
+digitalWrite(p1_clock,LOW);}
+//----------------------
+delayMicroseconds(4);
+//----------------------
+
+
+
+if (mode == 4) {
+    //pong_interpret_controller();
+  } else if (mode == 10) {
+    //react_interpret_controller();
+  } else if (mode == 12) {
+    //senso_interpret_controller();
+  } else if (mode == 13) {
+	paint_interpret_controller();
+  }
+}
+
+
+
+void paint_interpret_controller(){
+if(p1_controller_data==B01111111){ paint_set_pixel_color();}//A   
+if(p1_controller_data==B10111111){ paint_remove_pixel_color();}// B
+if(p1_controller_data==B11110111){ if (paint_spiegeln == 1) {paint_mv_down();} else { paint_mv_up();}} //UP
+if(p1_controller_data==B11111011){ if (paint_spiegeln == 1) {paint_mv_up();} else { paint_mv_down();}}// DOWN
+if(p1_controller_data==B11111110){ if (paint_spiegeln == 1) {paint_mv_left();} else { paint_mv_right();}}//RIGHT
+if(p1_controller_data==B11111101){ if (paint_spiegeln == 1) {paint_mv_right();} else { paint_mv_left();}}//LEFT
+if(p1_controller_data==B11011111){paint_wheel_pos += 5; if (paint_wheel_pos >= 255) {paint_wheel_pos = 0;}}//SELCET
+if(p1_controller_data==B11101111){paint_new_page();}//START
+}
+
+
+unsigned int get_led_number(int x, int y) {
+
+  if (y % 2) { //ungerade
+    switch (nullpunkt)
+    {
+      case 0: //oben links
+        return (y * feldx) + feldx - 1 - x; //ungerade
+      case 1: //oben rechts
+        return (y * feldx) + x;
+      case 2: //unten links
+        return (feldx * feldy) - 1 - 19 - (y * feldx) + x;
+      case 3: //unten rechts
+        return (feldx * feldy) - 1  - 19 - (y * feldx) + feldx - 1 - x;
+    }
+  } else { //gerade
+    switch (nullpunkt) {
+      case 0: //oben links
+        return (y * feldx) + x;
+
+      case 1: //oben rechts
+        return (y * feldx) + feldx - 1 - x;
+      case 2: //unten links
+        return (feldx * feldy) - 1 - 19 - (y * feldx) + feldx - 1 - x;
+      case 3: //unten rechts
+        return (feldx * feldy) - 1 - 19 - (y * feldx) + x;
+    }
+  }
+
+}

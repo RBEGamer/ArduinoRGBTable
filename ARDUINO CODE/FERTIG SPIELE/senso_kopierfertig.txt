@@ -1,0 +1,572 @@
+#include "Adafruit_NeoPixel.h"
+
+
+//zwei spieler---?
+
+#define NUM_LEDS 200
+
+
+
+#define PIN 4
+
+
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(200, 33, NEO_RGB + NEO_KHZ800);
+
+int nullpunkt = 1; //0: oben links, 1: oben rechts, 2: unten links, 3: unten rechts
+
+const unsigned int feldx = 20;
+
+const unsigned int feldy = 10;
+
+int mode = 12;
+
+
+
+//-----senso-----
+
+//Senso vars
+
+unsigned int senso_strip[44] = { get_led_number(0, 7), get_led_number(0, 4), get_led_number(1, 7), get_led_number(1, 5), get_led_number(1, 3), get_led_number(2, 6), get_led_number(2, 3), get_led_number(4, 7), get_led_number(4, 6), get_led_number(4, 5), get_led_number(4, 4), get_led_number(4, 3), get_led_number(5, 7), get_led_number(5, 5), get_led_number(5, 3), get_led_number(7, 7), get_led_number(7, 6), get_led_number(7, 5), get_led_number(7, 4), get_led_number(7, 3), get_led_number(8, 4), get_led_number(9, 5), get_led_number(10, 7), get_led_number(10, 6), get_led_number(10, 5), get_led_number(10, 4), get_led_number(10, 3), get_led_number(12, 7), get_led_number(12, 4), get_led_number(13, 7), get_led_number(13, 5), get_led_number(13, 3), get_led_number(14, 6), get_led_number(14, 3), get_led_number(16, 6), get_led_number(16, 5), get_led_number(16, 4), get_led_number(17, 7), get_led_number(17, 3), get_led_number(18, 7), get_led_number(18, 3), get_led_number(19, 6), get_led_number(19, 5), get_led_number(19, 4)};
+unsigned int senso_cross_strip[5] = { get_led_number(1, 5), get_led_number(2, 4), get_led_number(2, 5), get_led_number(2, 6), get_led_number(3, 5)};
+unsigned int senso_cross_up = get_led_number(2, 4);
+unsigned int senso_cross_down = get_led_number(2, 6);
+unsigned int senso_cross_left = get_led_number(1, 5);
+unsigned int senso_cross_right = get_led_number(3, 5);
+unsigned int senso_select_strip[2] = {get_led_number(6, 5), get_led_number(7, 5)};
+unsigned int senso_start_strip[2] = {get_led_number(10, 5), get_led_number(11, 5) };
+unsigned int senso_b_strip[4] = {get_led_number(14, 4), get_led_number(14, 5), get_led_number(15, 4), get_led_number(15, 5)};
+unsigned int senso_a_strip[4] = {get_led_number(17, 4), get_led_number(17, 5), get_led_number(18, 4), get_led_number(18, 5)};
+int senso_show_buttons = 1;
+int senso_include_startselect = 0;
+const int senso_max_length = 100;
+byte senso_p1_controller_data_tmp = 0;
+int senso_order[senso_max_length] = {0};
+int senso_length = 1;
+int senso_p1_pos = 0;
+int senso_player_wrong = 0; //0: beide richtig, 1: p1 falsch, 2: p2 falsch, 3:beide falsch
+int senso_wheelpos = 1;
+int senso_button_color_r = 255, senso_button_color_g = 255, senso_button_color_b = 0;
+int senso_button_order_r = 0, senso_button_order_g = 0, senso_button_order_b = 255;
+int senso_last_button_red = 0;
+int senso_show_delay = 500;
+
+
+
+int p1_latch = A1; // set the latch pin
+int p1_clock = A0; // set the clock pin
+int p1_datin = A2;// set the data in pin
+int p2_latch = A4;// set the latch pin
+int p2_clock = A3; // set the clock pin
+int p2_datin = A5;// set the data in pin
+byte p1_controller_data = 0;
+byte p2_controller_data = 0;
+
+
+
+//end vars
+
+
+
+void setup() {
+  randomSeed(analogRead(6));
+  strip.begin();
+  //CONTROLLER INIT
+  pinMode(p1_latch, OUTPUT);
+  pinMode(p1_clock, OUTPUT);
+  pinMode(p1_datin, INPUT);
+  digitalWrite(p1_latch, HIGH);
+  digitalWrite(p1_clock, HIGH);
+  pinMode(p2_latch, OUTPUT);
+  pinMode(p2_clock, OUTPUT);
+  pinMode(p2_datin, INPUT);
+  digitalWrite(p2_latch, HIGH);
+  digitalWrite(p2_clock, HIGH);
+  clear_screen();
+  senso_main_reset();
+}
+
+
+
+void senso_main_reset() {
+  senso_reset_game();
+}
+
+void senso_show_boot() {
+  clear_screen();
+  delay(20);
+  for (int i = 0; i < 44; i++) {
+    strip.setPixelColor(senso_strip[i], Wheel(senso_wheelpos));
+    senso_wheelpos += 10;
+    if (senso_wheelpos > 255) {
+      senso_wheelpos = 0;
+    }
+    strip.show();
+    delay(100);
+  }
+  delay(2000);
+}
+
+void senso_reset_game() {
+  senso_show_boot();
+  delay(150);
+  senso_player_wrong = 0;
+  senso_length = 1;
+  senso_p1_pos = 0;
+  clear_screen();
+  for (int i = 0; i < senso_max_length; i++) {
+    if (senso_include_startselect == 1) {
+      senso_order[i] = random(1, 9);
+    } else {
+      senso_order[i] = random(1, 7);
+    }
+  }
+  senso_draw_buttons();
+  senso_draw_order();
+}
+
+
+
+void loop() {
+  senso_loop();
+}
+
+
+
+void senso_loop() {
+  if (senso_player_wrong == 0) {
+    if (senso_p1_pos == senso_length ) {//beide sind fertig ---> reihenfolge anzeigen
+      senso_p1_pos = 0;
+      senso_length++;
+      if (senso_length >= senso_max_length) {
+        senso_main_reset();
+      }
+      delay(10);
+      senso_draw_order();
+      senso_p1_pos = 0;
+      delay(10);
+    } else { //noch nicht fertig --> controllerabfrage
+      controllerRead();
+    }
+    senso_wheelpos++;
+    senso_draw_strip();
+  } else { //jemand hat falsch
+    senso_draw_end();
+  }
+  delay (100);
+}
+
+
+
+
+
+void senso_draw_order() {
+  delay(100);
+  clear_screen();
+  senso_draw_buttons();
+  for (int i = 0; i < senso_length; i++) {
+    senso_p1_pos = 0;
+    switch ( senso_order[i]) {
+      case 1: //up
+        strip.setPixelColor(senso_cross_up, strip.Color(senso_button_order_r, senso_button_order_g, senso_button_order_b));
+        break;
+      case 2: //down
+        strip.setPixelColor(senso_cross_down, strip.Color(senso_button_order_r, senso_button_order_g, senso_button_order_b));
+        break;
+      case 3: //right
+        strip.setPixelColor(senso_cross_right, strip.Color(senso_button_order_r, senso_button_order_g, senso_button_order_b));
+        break;
+      case 4: //left
+        strip.setPixelColor(senso_cross_left, strip.Color(senso_button_order_r, senso_button_order_g, senso_button_order_b));
+        break;
+      case 5: //b
+        for (int j = 0; j < 4; j++) {
+          strip.setPixelColor(senso_b_strip[j], strip.Color(senso_button_order_r, senso_button_order_g, senso_button_order_b));
+        }
+        break;
+      case 6: //a
+        for (int j = 0; j < 4; j++) {
+          strip.setPixelColor(senso_a_strip[j], strip.Color(senso_button_order_r, senso_button_order_g, senso_button_order_b));
+        }
+        break;
+      case 7: //select
+        for (int j = 0; j < 2; j++) {
+          strip.setPixelColor(senso_select_strip[j], strip.Color(senso_button_order_r, senso_button_order_g, senso_button_order_b));
+        }
+        break;
+      case 8: //start
+        for (int j = 0; j < 2; j++) {
+          strip.setPixelColor(senso_start_strip[j], strip.Color(senso_button_order_r, senso_button_order_g, senso_button_order_b));
+        }
+        break;
+      default:
+        break;
+    } //end switch
+    strip.show();
+    delay(senso_show_delay);
+    switch ( senso_order[i]) {
+      case 1: //up
+        strip.setPixelColor(senso_cross_up, strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+        break;
+      case 2: //down
+        strip.setPixelColor(senso_cross_down, strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+        break;
+      case 3: //right
+        strip.setPixelColor(senso_cross_right, strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+        break;
+      case 4: //left
+        strip.setPixelColor(senso_cross_left, strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+        break;
+      case 5: //b
+        for (int j = 0; j < 4; j++) {
+          strip.setPixelColor(senso_b_strip[j], strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+        }
+        break;
+      case 6: //a
+        for (int j = 0; j < 4; j++) {
+          strip.setPixelColor(senso_a_strip[j], strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+        }
+        break;
+      case 7: //select
+        for (int j = 0; j < 2; j++) {
+          strip.setPixelColor(senso_select_strip[j], strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+        }
+        break;
+      case 8: //start
+        for (int j = 0; j < 2; j++) {
+          strip.setPixelColor(senso_start_strip[j], strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+        }
+        break;
+      default:
+        break;
+    } //end switch
+    strip.show();
+    delay(senso_show_delay / 5);
+  } //end for
+  senso_draw_strip();
+}
+
+
+
+void senso_draw_buttons() {
+  for (int i = 0; i < 5; i++) {
+    strip.setPixelColor(senso_cross_strip[i], strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+  }
+  for (int i = 0; i < 2; i++) {
+    strip.setPixelColor(senso_select_strip[i], strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+  }
+  for (int i = 0; i < 2; i++) {
+   strip.setPixelColor(senso_start_strip[i], strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+  }
+  for (int i = 0; i < 4; i++) {
+    strip.setPixelColor(senso_b_strip[i], strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+  }
+  for (int i = 0; i < 4; i++) {
+    strip.setPixelColor(senso_a_strip[i], strip.Color(senso_button_color_r, senso_button_color_g, senso_button_color_b));
+  }
+  strip.show();
+}
+
+
+
+void senso_draw_strip() {
+  for (int i = 0; i < 20; i++) {
+    strip.setPixelColor(get_led_number(i, 0), strip.Color(0, 255, 0));
+    strip.setPixelColor(get_led_number(i, 9), strip.Color(0, 255, 0));
+  }
+  for (int i = 0; i < 10; i++)
+  {
+    strip.setPixelColor(get_led_number(0, i), strip.Color(0, 255, 0));
+    strip.setPixelColor(get_led_number(19, i), strip.Color(0, 255, 0));
+  }
+  strip.show();
+}
+
+
+
+void senso_draw_end() {
+  for (int i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(255, 0, 0));
+  }
+  strip.show();
+  delay (3000);
+  senso_reset_game();
+}
+
+void senso_draw_button (int button_nr) {
+  if (senso_show_buttons == 1) {
+    switch ( button_nr) {
+      case 1: //up
+        strip.setPixelColor(senso_cross_up, strip.Color(255, 0, 0));
+        break;
+      case 2: //down
+        strip.setPixelColor(senso_cross_down, strip.Color(255, 0, 0));
+        break;
+      case 3: //right
+        strip.setPixelColor(senso_cross_right, strip.Color(255, 0, 0));
+        break;
+      case 4: //left
+        strip.setPixelColor(senso_cross_left, strip.Color(255, 0, 0));
+        break;
+      case 5: //b
+        for (int j = 0; j < 4; j++) {
+          strip.setPixelColor(senso_b_strip[j], strip.Color(255, 0, 0));
+        }
+        break;
+      case 6: //a
+        for (int j = 0; j < 4; j++) {
+          strip.setPixelColor(senso_a_strip[j], strip.Color(255, 0, 0));
+        }
+        break;
+      case 7: //select
+        for (int j = 0; j < 2; j++) {
+          strip.setPixelColor(senso_select_strip[j], strip.Color(255, 0, 0));
+        }
+        break;
+      case 8: //start
+        for (int j = 0; j < 2; j++) {
+          strip.setPixelColor(senso_start_strip[j], strip.Color(255, 0, 0));
+        }
+        break;
+      default:
+        break;
+    } //end switch
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void controllerRead() {
+  p1_controller_data = 0;
+  digitalWrite(p1_latch, LOW); digitalWrite(p1_clock, LOW); digitalWrite(p1_latch, HIGH);
+  delayMicroseconds(2);
+  digitalWrite(p1_latch, LOW);
+  p1_controller_data = digitalRead(p1_datin);
+  for (int i = 1; i <= 7; i ++) {
+    digitalWrite(p1_clock, HIGH);
+    delayMicroseconds(2);
+    p1_controller_data = p1_controller_data << 1;
+    p1_controller_data = p1_controller_data + digitalRead(p1_datin) ;
+    delayMicroseconds(4);
+    digitalWrite(p1_clock, LOW);
+  }
+  //----------------------
+  delayMicroseconds(4);
+  //----------------------
+  
+
+
+
+  if (mode == 4) {
+    //pong_interpret_controller();
+  } else if (mode == 10) {
+    //react_interpret_controller();
+  } else if (mode == 12) {
+    senso_interpret_controller();
+  }
+}
+
+
+
+void senso_interpret_controller() {
+  if (senso_p1_controller_data_tmp == 0) {
+    if (p1_controller_data == B01111111 || p1_controller_data == B10111111 || p1_controller_data == B11110111 || p1_controller_data == B11111011 || p1_controller_data == B11111110 || p1_controller_data == B11111101 || p1_controller_data == B11011111 || p1_controller_data == B11101111)
+    {
+      senso_p1_controller_data_tmp = p1_controller_data;
+    }
+  }
+  else if (p1_controller_data != B01111111 && p1_controller_data != B10111111 && p1_controller_data != B11110111 && p1_controller_data != B11111011 && p1_controller_data != B11111110 && p1_controller_data != B11111101 && p1_controller_data != B11011111 && p1_controller_data != B11101111 ) {
+    if (senso_p1_controller_data_tmp == B01111111) {
+      if (senso_last_button_red == 1){
+       senso_draw_buttons(); 
+      }
+      delay (50);
+      senso_last_button_red = 1;
+      senso_draw_button(6);
+      if (senso_order[senso_p1_pos] == 6) { //wenn richtig
+        senso_p1_pos ++;
+      } else { //wenn falsch
+        senso_player_wrong = 1;
+      }
+      senso_p1_controller_data_tmp = 0;
+    }//A   (6)
+    if (senso_p1_controller_data_tmp == B10111111) {
+      if (senso_last_button_red == 1){
+       senso_draw_buttons(); 
+      }
+      delay (50);
+      senso_last_button_red = 1;
+      senso_draw_button(5);
+      if (senso_order[senso_p1_pos] == 5) { //wenn richtig
+        senso_p1_pos ++;
+      } else { //wenn falsch
+        senso_player_wrong = 1;
+      }
+      senso_p1_controller_data_tmp = 0;
+    }// B (5)
+    if (senso_p1_controller_data_tmp == B11110111) {
+      if (senso_last_button_red == 1){
+       senso_draw_buttons(); 
+      }
+      delay (50);
+      senso_last_button_red = 1;
+      if (senso_order[senso_p1_pos] == 1) { //wenn richtig
+        senso_p1_pos ++;
+      } else { //wenn falsch
+        senso_player_wrong = 1;
+      }
+      senso_draw_button(1);
+      senso_p1_controller_data_tmp = 0;
+    } //UP (1)
+    if (senso_p1_controller_data_tmp == B11111011) {
+      if (senso_last_button_red == 1){
+       senso_draw_buttons(); 
+      }
+      delay (50);
+      senso_last_button_red = 1;
+      senso_draw_button(2);
+      if (senso_order[senso_p1_pos] == 2) { //wenn richtig
+        senso_p1_pos ++;
+      } else { //wenn falsch
+        senso_player_wrong = 1;
+      }
+      senso_p1_controller_data_tmp = 0;
+    }// DOWN (2)
+    if (senso_p1_controller_data_tmp == B11111110) {
+      if (senso_last_button_red == 1){
+       senso_draw_buttons(); 
+      }
+      delay (50);
+      senso_last_button_red = 1;
+      senso_draw_button(3);
+      if (senso_order[senso_p1_pos] == 3) { //wenn richtig
+        senso_p1_pos ++;
+      } else { //wenn falsch
+        senso_player_wrong = 1;
+      }
+      senso_p1_controller_data_tmp = 0;
+    }//RIGHT (3)
+    if (senso_p1_controller_data_tmp == B11111101) {
+      if (senso_last_button_red == 1){
+       senso_draw_buttons(); 
+      }
+      delay (50);
+      senso_last_button_red = 1;
+      senso_draw_button(4);
+      if (senso_order[senso_p1_pos] == 4) { //wenn richtig
+        senso_p1_pos ++;
+      } else { //wenn falsch
+        senso_player_wrong = 1;
+      }
+      senso_p1_controller_data_tmp = 0;
+    }//LEFT (4)
+    if (senso_p1_controller_data_tmp == B11011111) {
+      delay (50);
+      senso_draw_button(7);
+      if (senso_order[senso_p1_pos] == 7) { //wenn richtig
+        senso_p1_pos ++;
+      } else { //wenn falsch
+        senso_player_wrong = 1;
+      }
+      senso_p1_controller_data_tmp = 0;
+    }//SELCET (7)
+    if (senso_p1_controller_data_tmp == B11101111) {
+      if (senso_last_button_red == 1){
+       senso_draw_buttons(); 
+      }
+      delay (50);
+      senso_last_button_red = 1;
+      senso_draw_button(8);
+      if (senso_order[senso_p1_pos] == 8) { //wenn richtig
+        senso_p1_pos ++;
+      } else { //wenn falsch
+        senso_player_wrong = 1;
+      }
+      senso_p1_controller_data_tmp = 0;
+    }//START (8)
+  }
+}
+
+
+
+void clear_screen() {
+  uint16_t i;
+  for (i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(0, 0, 0));
+  }
+  strip.show();
+}
+
+
+
+//COORDS TO LED NUMBER
+
+unsigned int get_led_number(int x, int y) {
+
+  if (y % 2) { //ungerade
+    switch (nullpunkt)
+    {
+      case 0: //oben links
+        return (y * feldx) + feldx - 1 - x; //ungerade
+      case 1: //oben rechts
+        return (y * feldx) + x;
+      case 2: //unten links
+        return (feldx * feldy) - 1 - 19 - (y * feldx) + x;
+      case 3: //unten rechts
+        return (feldx * feldy) - 1  - 19 - (y * feldx) + feldx - 1 - x;
+    }
+  } else { //gerade
+    switch (nullpunkt) {
+      case 0: //oben links
+        return (y * feldx) + x;
+
+      case 1: //oben rechts
+        return (y * feldx) + feldx - 1 - x;
+      case 2: //unten links
+        return (feldx * feldy) - 1 - 19 - (y * feldx) + feldx - 1 - x;
+      case 3: //unten rechts
+        return (feldx * feldy) - 1 - 19 - (y * feldx) + x;
+    }
+  }
+
+}
+
+
+
+uint32_t Wheel(byte WheelPos) {
+  if (WheelPos < 85) {
+    return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  } else if (WheelPos < 170) {
+    WheelPos -= 85;
+    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  } else {
+    WheelPos -= 170;
+    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+}
