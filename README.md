@@ -101,6 +101,7 @@ For a long version, send me a message
 * connect to the ip of the table
 * look at the settings section for timezone and other settings
 * HAVE FUN
+
 ## NOTE
 At the first power on you must hold the pushbutton, to write the default config
 
