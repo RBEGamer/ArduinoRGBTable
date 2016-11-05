@@ -6,14 +6,19 @@
 #include <DueFlashStorage.h>
 #include <TextFinder.h>
 
+//PIN CONFIG
+#define WS2812_PIN 33
+#define WS2812_STANDBY_LED_PIN 31
+const int relais = 35; //relais pin to enable the led power
+const int fan = 37; //relais pin to enable the relais for the fan
+const int pi_en = 39; // pin to send enabel for the T.I.S (RPI needed)
+const int reset_jumper = 41; // pin for the standby switch
+
 DueFlashStorage dueFlashStorage;
 static uint8_t mac[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x23 };
-Adafruit_NeoPixel standby_strip = Adafruit_NeoPixel(1, 31, NEO_RGB + NEO_KHZ800);
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(200, 33, NEO_RGB + NEO_KHZ800);
-const int relais = 35;
-const int fan = 37;
-const int pi_en = 39;
-const int reset_jumper = 41;
+Adafruit_NeoPixel standby_strip = Adafruit_NeoPixel(1, WS2812_STANDBY_LED_PIN, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(200, WS2812_PIN, NEO_RGB + NEO_KHZ800);
+
 
 const String versionsnummer = "Beta 1.5.5";
 String webTitle = "RBE LED-Table";
