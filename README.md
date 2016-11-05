@@ -91,6 +91,7 @@ For a long version, send me a message
 * download the webserver libary : https://github.com/sirleech/Webduino
 * download the flash-storage libary : https://github.com/sebnil/DueFlashStorage
 * download the latest sketch from this repo, located at /ARDUINO CODE/table_due_beta35_Websitetitel.txt
+* set the pin config (line 9 - 16)
 * flash the sketch to your arduino
 
 # USAGE
