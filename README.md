@@ -108,7 +108,11 @@ At the first power on you must hold the pushbutton, to write the default config
 
 
 # IMAGES
+### Final 120x60cm table with rainbow mode activated
 ![Gopher image](PICTURES/Photo-13-05-14-02-29-53-22.JPG)
+### led mount
 ![Gopher image](PICTURES/Photo-13-05-14-02-29-52-12.JPG)
+### matrix
 ![Gopher image](PICTURES/Photo-13-05-14-02-29-52-7.JPG)
+### electronic
 ![Gopher image](PICTURES/Photo-13-05-14-02-29-53-20.JPG)
