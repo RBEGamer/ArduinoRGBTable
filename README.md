@@ -17,7 +17,7 @@ Each mode have several options to customise the color, speed,...
 
 * RAINBOW
 * CONSTANT COLOR
-* RANDOWM COLOR / RANDOM PIXELS
+* RANDOM COLOR / PIXELS
 * CLOCK
 * SCROLLING TEXT (with numbers and special characters)
 * RSS Display (required a RaspberryPi on SerialPort1 of the Ardino)
