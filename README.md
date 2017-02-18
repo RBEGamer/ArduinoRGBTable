@@ -44,8 +44,8 @@ Each mode have several options to customise the color, speed,...
 * tons of wires for the leds (but you can buy pre wired leds, DO IT)
 * luster terminals
 * pcb board
-* 1 120x60x10mm plywood ground plate (GROUND_PLATE)
-* 1 120x60x3mm poplar wood plate for the leds (LED_PLATE)
+* 1 120x60x10mm plywood ground plate (`GROUND_PLATE`)
+* 1 120x60x3mm poplar wood plate for the leds (`LED_PLATE`)
 * 1 120x60x8mm glass plate
 * 1 120x60x3mm acrylic glass plate with 75% 	transparency
 * plastic L profiles 
@@ -68,16 +68,16 @@ Each mode have several options to customise the color, speed,...
 For a long version, send me a message
 
 * drill 200 holes with the 5mm drill into the `LED_PLATE` with 60mm distance to each other, to get the led matrix
-* glue each of the 200 (connected led = one strip, DOUT -> DIN), into one hole of the `LED_PLATE`, fix it with hotglue
-* mount pieces of the 10x10mm [] woodl profiles unter the `LED_PLATE` for spacing
+* glue each of the 200 (connected led = one strip, `DOUT -> DIN`), into one hole of the `LED_PLATE`, fix it with hotglue
+* mount pieces of the 10x10mm [] wood profiles unter the `LED_PLATE` for spacing
 * drill holes into the `GROUND_PLATE`for the led wires
-* glue and screw the  LED_PLATE with the spacers on to the GROUND_PLATE
-* mount the table leg plates on each corner of the GROUND_PLATE
-* mount the power supply and the arduino (with rtc connected, relais, switch, nes controllers) under the GROUND_PLATE
-* connect relais channel 1 beween  power supply and VCC of the leds
-* connect relais channel 2 beween power supply and  VCC of the fan
-* connect the first led DIN through the levelshifter to the arduino
-*  place the L and I prfiles on top of the LED Plate so that it gives a matrix (see pictures)
+* glue and screw the  `LED_PLATE` with the spacers on to the `GROUND_PLATE`
+* mount the table leg plates on each corner of the `GROUND_PLATE`
+* mount the power supply and the arduino (with rtc connected, relais, switch, nes controllers) under the `GROUND_PLATE`
+* connect relais channel 1 beween  power supply and `VCC` of the leds
+* connect relais channel 2 beween power supply and  `VCC` of the fan
+* connect the first led `DIN` through the levelshifter to the arduino
+*  place the L and I prfiles on top of the `LED Plate` so that it gives a matrix (see pictures)
 * place the I 30x5mm wood profiles around the `GROUND_PLATE/LED_PLATE` to build the frame and glue/screw it
 * mount/screw the table legs
 * place the acrylic glass plate over the matrix
